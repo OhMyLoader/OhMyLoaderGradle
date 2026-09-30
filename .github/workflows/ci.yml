@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # The plugin resolves org.ohmyloader:oml-devtools by Maven coordinate, so CI reproduces
+      # the documented dev loop: publish the loader's devtools to mavenLocal first. Only
+      # devtools — no zig needed, oml-native is not a dependency of this repo.
+      - uses: actions/checkout@v7
+        with:
+          repository: OhMyLoader/OhMyLoader
+          ref: main
+          path: OhMyLoader
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: '27'
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew -p OhMyLoader :oml-devtools:publishMavenPublicationToMavenLocal
+      - run: ./gradlew build
+
+  # Tag build: publish the plugin (jar + plugin marker) to GitHub Packages, versioned from
+  # the tag. The loader is checked out at the SAME tag on purpose — "plugin v0.2.0" must be
+  # built against "loader v0.2.0", not a moving main; the loader repository must carry the
+  # tag first, so the release order is: tag the loader, then tag this repo.
+  # Consumers resolve the artifact from maven.pkg.github.com — note GitHub Packages requires
+  # authentication even for public-repo reads; swap the repository URL for the dedicated
+  # Maven server when it exists.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: OhMyLoader/OhMyLoader
+          # same version tag as this release; the checkout fails if the loader tag is missing
+          ref: ${{ github.ref_name }}
+          path: OhMyLoader
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: '27'
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew -p OhMyLoader :oml-devtools:publishMavenPublicationToMavenLocal
+      - run: ./gradlew -Poml_version="${GITHUB_REF_NAME#v}" publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
