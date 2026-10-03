@@ -225,7 +225,7 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
         val lib = buildDir?.let { OmlNativeLayout.candidatePaths(it).firstOrNull { f -> f.isFile } }
             ?: return false
         val target = File(natives, lib.name)
-        if (target.isFile && target.length() == lib.length()) {
+        if (target.isFile && sameContent(target, lib)) {
             logger.lifecycle("[oml] oml-native up to date in ${target.parentFile.absolutePath}")
             return true
         }
@@ -248,15 +248,27 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
                     logger.warn("[oml] $jar carries no oml-native library entry — publishing an empty classifier?")
                 }
             val target = File(natives, entry.name)
-            if (target.isFile && target.length() == entry.size) {
+            val bytes = zip.getInputStream(entry).use { it.readBytes() }
+            if (target.isFile && sameContent(target, bytes)) {
                 logger.lifecycle("[oml] oml-native (from ${jar.name}) up to date in ${target.parentFile.absolutePath}")
                 return true
             }
-            zip.getInputStream(entry).use { input -> target.outputStream().use { input.copyTo(it) } }
+            target.writeBytes(bytes)
             logger.lifecycle(
                 "[oml] oml-native deployed from ${jar.name}: ${target.absolutePath} (${entry.size / 1024} KB)",
             )
             return true
         }
     }
+
+    /**
+     * Byte-wise comparison, not a length check: two builds of the same library are routinely the same
+     * size while differing in content, and a size-only check leaves the stale one deployed forever —
+     * the failure then looks like "the new zig build had no effect".
+     */
+    private fun sameContent(target: File, source: File): Boolean =
+        target.length() == source.length() && target.readBytes().contentEquals(source.readBytes())
+
+    private fun sameContent(target: File, bytes: ByteArray): Boolean =
+        target.length().toInt() == bytes.size && target.readBytes().contentEquals(bytes)
 }

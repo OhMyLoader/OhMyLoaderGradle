@@ -149,10 +149,9 @@ class OmlPlugin : Plugin<Project> {
                 // architecture picks the slot — an arm64 JVM cannot load an x86_64 library, so it
                 // resolves `natives-<os>-arm64` (the plain jar is the x86_64 one, the spelling
                 // legacy launcher rules resolve).
-                val os = OmlNativeLayout.buildPlatforms().first()
-                    .let { if (it == "macosx") "osx" else it }
-                val isArm = OmlNativeLayout.buildArchs().first() in setOf("arm64", "aarch64")
-                "org.ohmyloader:oml-native:$version:natives-$os" + if (isArm) "-arm64" else ""
+                val os = OmlNativeLayout.nativeClassifierOs()
+                val archSuffix = OmlNativeLayout.nativeClassifierArchSuffix()
+                "org.ohmyloader:oml-native:$version:natives-$os$archSuffix"
             },
         )
 

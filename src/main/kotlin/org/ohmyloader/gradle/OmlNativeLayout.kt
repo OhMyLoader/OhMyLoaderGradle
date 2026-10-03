@@ -32,6 +32,25 @@ internal object OmlNativeLayout {
         }
     }
 
+    /**
+     * The `<os>` token the published `natives-<os>` classifiers are spelled with (the repository says
+     * `osx`, the build tree says `macosx`).
+     *
+     * Fails loudly on an unrecognized `os.name`: defaulting to some platform would resolve a library
+     * this JVM cannot load, and an unresolved classifier only surfaces later as a link error.
+     */
+    fun nativeClassifierOs(osName: String = System.getProperty("os.name", "")): String =
+        buildPlatforms(osName).firstOrNull()?.let { if (it == "macosx") "osx" else it }
+            ?: throw org.gradle.api.GradleException(
+                "unsupported os.name '$osName': cannot choose an oml-native classifier " +
+                    "(supported: Windows, Linux, macOS). Point oml.nativeProjectDir at a local zig build, " +
+                    "or run on a supported platform."
+            )
+
+    /** The classifier architecture suffix: `-arm64` where the JVM is 64-bit ARM, empty for x86_64. */
+    fun nativeClassifierArchSuffix(osArch: String = System.getProperty("os.arch", "")): String =
+        if (buildArchs(osArch).first() in setOf("arm64", "aarch64")) "-arm64" else ""
+
     /** The library file name the oml-native build produces on [osName] (an empty list platform yields `.so`). */
     fun libraryFileName(osName: String = System.getProperty("os.name", "")): String {
         val os = osName.lowercase()
