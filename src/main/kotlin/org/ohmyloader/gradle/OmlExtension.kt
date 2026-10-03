@@ -151,11 +151,19 @@ abstract class OmlExtension {
 
     companion object {
         /**
-         * Fallback for [apiVersion] when the consumer's build declares no `oml_version` property.
-         *
-         * Kept in step with the root `gradle.properties`, which is the authoritative definition. A
-         * consumer that wants to pin a different version sets the property or the extension field.
+         * Fallback for [apiVersion] when the consumer's build declares no `oml_version` property: the
+         * version this plugin was itself built as, stamped into `oml-gradle.properties` at build time
+         * from `project.version`. Stamping is the point — a literal here drifts from the loader the
+         * plugin actually ships against, and the mismatch only surfaces later as an unresolvable
+         * coordinate. A consumer that wants to pin a different version sets the property or the
+         * extension field.
          */
-        const val DEFAULT_API_VERSION: String = "0.2.0-SNAPSHOT"
+        val DEFAULT_API_VERSION: String = stampedVersion()
+
+        private fun stampedVersion(): String =
+            OmlExtension::class.java.getResourceAsStream("/oml-gradle.properties")?.use { stream ->
+                java.util.Properties().apply { load(stream) }
+                    .getProperty("version")?.takeIf { it.isNotBlank() }
+            } ?: "unknown"
     }
 }

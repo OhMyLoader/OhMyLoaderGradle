@@ -109,9 +109,10 @@ class OmlPluginTest {
         project.oml().minecraftVersion.set("26.3")
 
         val ids = project.dependencyIds("omlLoader", withVersion = true)
-        assertTrue(ids.contains("org.ohmyloader:oml-adapter-26_3:0.2.0-SNAPSHOT"), "omlLoader: $ids")
-        assertTrue(ids.contains("org.ohmyloader:oml-core:0.2.0-SNAPSHOT"), "omlLoader: $ids")
-        assertTrue(ids.contains("org.ohmyloader:oml-launcher:0.2.0-SNAPSHOT"), "omlLoader: $ids")
+        val api = OmlExtension.DEFAULT_API_VERSION
+        assertTrue(ids.contains("org.ohmyloader:oml-adapter-26_3:$api"), "omlLoader: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-core:$api"), "omlLoader: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-launcher:$api"), "omlLoader: $ids")
     }
 
     @Test
@@ -142,8 +143,20 @@ class OmlPluginTest {
 
     @Test
     fun `the api version follows the oml_version project property with a fallback`() {
-        // No property in a bare ProjectBuilder project, so the compiled-in default applies.
+        // No property in a bare ProjectBuilder project, so the stamped default applies.
         assertEquals(OmlExtension.DEFAULT_API_VERSION, project().oml().apiVersion.get())
+    }
+
+    @Test
+    fun `the fallback is the version this plugin was built as, not a literal`() {
+        // "unknown" means the processResources stamping broke; every consumer that declares no
+        // oml_version would then resolve coordinates that do not exist, and would find out only when
+        // resolution fails. The pattern check catches a placeholder that survived stamping.
+        assertNotEquals("unknown", OmlExtension.DEFAULT_API_VERSION)
+        assertTrue(
+            Regex("""\d+\.\d+\.\d+.*""").matches(OmlExtension.DEFAULT_API_VERSION),
+            "stamped version looks wrong: ${OmlExtension.DEFAULT_API_VERSION}",
+        )
     }
 
     @Test

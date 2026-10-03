@@ -31,6 +31,18 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+// Stamp the plugin's own version into the jar: OmlExtension.DEFAULT_API_VERSION reads it back so a
+// consumer that declares no `oml_version` resolves the loader coordinates this plugin was built
+// against. The value comes from `project.version` — the same one the publication carries — not from
+// a second literal that could drift from it.
+tasks.processResources {
+    val pluginVersion = project.version.toString()
+    inputs.property("omlVersion", pluginVersion)
+    filesMatching("oml-gradle.properties") {
+        expand("version" to pluginVersion)
+    }
+}
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
     testLogging {
