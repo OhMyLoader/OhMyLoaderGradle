@@ -305,6 +305,10 @@ class OmlPlugin : Plugin<Project> {
                 deployModJar(modJarFile, deployed)
                 t.logger.lifecycle("[oml] mods directory: ${modsDirectory.absolutePath}")
                 t.logger.lifecycle("[oml] mod deployed: ${deployed.name}")
+                // The client console reads stdin (commands, and any mod listening on it). Set here,
+                // not at configuration time: `System.in` is not serializable, so capturing the stream
+                // in the task state would make the configuration cache refuse the task.
+                task.standardInput = System.`in`
             }
         }
     }
@@ -385,6 +389,11 @@ class OmlPlugin : Plugin<Project> {
                 gameDir.mkdirs()
                 eulaFile.writeText("eula=true\n")
                 deployModJar(modJarFile, File(modsDirectory, modJarFile.name))
+                // The dedicated server's whole console is stdin (`/stop`, `op`, `/whitelist`); a
+                // JavaExec without it hands the server an empty stream, so typed commands vanish.
+                // Set in the action rather than at configuration time because `System.in` is not
+                // serializable and would break the configuration cache.
+                task.standardInput = System.`in`
             }
         }
     }
