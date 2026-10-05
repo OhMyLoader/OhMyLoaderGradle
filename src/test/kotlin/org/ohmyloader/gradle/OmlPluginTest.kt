@@ -51,7 +51,7 @@ class OmlPluginTest {
         project.oml().minecraftVersion.set("26.3")
         val expected = listOf(
             "fetchClientJar", "fetchLibraries", "extractNatives",
-            "fetchAssets", "runClient", "runServer",
+            "fetchAssets", "runClient", "runServer", "omlJar",
         )
         for (name in expected) {
             val task = project.tasks.findByName(name)

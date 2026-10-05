@@ -25,6 +25,11 @@ dependencies {
     compileOnly(gradleApi())
     // The typed downloader API this plugin calls in-process.
     implementation("org.ohmyloader:oml-devtools:$version")
+    // omlJar scans the built jar with the loader's own ModScanner (same @Mod contract, not a
+    // second one that could drift); ASM rides on the plugin's runtime classpath through it.
+    implementation("org.ohmyloader:oml-core:$version")
+    implementation("org.ow2.asm:asm:9.10.1")
+    implementation("org.ow2.asm:asm-tree:9.10.1")
     // gradleApi() brings ProjectBuilder: tests apply the plugin to a throwaway project without a
     // real build, daemon, or network.
     testImplementation(gradleApi())
