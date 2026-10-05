@@ -44,7 +44,7 @@ internal object OmlNativeLayout {
             ?: throw org.gradle.api.GradleException(
                 "unsupported os.name '$osName': cannot choose an oml-native classifier " +
                     "(supported: Windows, Linux, macOS). Point oml.nativeProjectDir at a local zig build, " +
-                    "or run on a supported platform."
+                    "or run on a supported platform.",
             )
 
     /** The classifier architecture suffix: `-arm64` where the JVM is 64-bit ARM, empty for x86_64. */
