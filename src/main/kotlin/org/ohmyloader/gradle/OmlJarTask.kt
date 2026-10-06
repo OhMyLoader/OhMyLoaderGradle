@@ -3,21 +3,11 @@ package org.ohmyloader.gradle
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.CacheableTask
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.ohmyloader.core.mod.ModScanner
 import java.io.File
-import java.util.jar.Attributes
-import java.util.jar.JarEntry
-import java.util.jar.JarFile
-import java.util.jar.JarOutputStream
-import java.util.jar.Manifest
+import java.util.jar.*
 
 /**
  * Produces the distributable mod jar: the project's `jar` output plus OML metadata in the
@@ -59,13 +49,13 @@ abstract class OmlJarTask : DefaultTask() {
             val mods = ModScanner.scan(scanMods)
             if (mods.isEmpty()) {
                 throw IllegalStateException(
-                    "$source carries no @Mod-annotated class — a jar without an entry point is not a distributable OML mod"
+                    "$source carries no @Mod-annotated class — a jar without an entry point is not a distributable OML mod",
                 )
             }
             val duplicateIds = mods.groupBy { it.id }.filterValues { it.size > 1 }
             if (duplicateIds.isNotEmpty()) {
                 throw IllegalStateException(
-                    "two @Mod classes in $source declare the same id: ${duplicateIds.keys.joinToString(", ")}"
+                    "two @Mod classes in $source declare the same id: ${duplicateIds.keys.joinToString(", ")}",
                 )
             }
 
@@ -92,13 +82,13 @@ abstract class OmlJarTask : DefaultTask() {
         main[Attributes.Name("OML-Mod-Id")] = mods.joinToString(", ") { it.id }
         // One manifest section per mod: the version and the dependency specs stay attached to the
         // mod they belong to even when one jar carries several.
-        for (mod in mods) {
+        for ((id, _, version, _, _, dependencies) in mods) {
             val section = Attributes()
-            section[Attributes.Name("OML-Mod-Version")] = mod.version
-            if (mod.dependencies.isNotEmpty()) {
-                section[Attributes.Name("OML-Dependencies")] = mod.dependencies.joinToString(", ") { it.display }
+            section[Attributes.Name("OML-Mod-Version")] = version
+            if (dependencies.isNotEmpty()) {
+                section[Attributes.Name("OML-Dependencies")] = dependencies.joinToString(", ") { it.display }
             }
-            manifest.entries[mod.id] = section
+            manifest.entries[id] = section
         }
 
         JarOutputStream(output.outputStream().buffered(), manifest).use { out ->

@@ -245,7 +245,9 @@ class OmlPlugin : Plugin<Project> {
         project.tasks.register("omlJar", OmlJarTask::class.java) { task ->
             task.group = "ohmyloader"
             task.description = "Build the distributable mod jar with OML metadata in the manifest"
-            task.jarFile.set(project.tasks.named("jar", org.gradle.api.tasks.bundling.Jar::class.java).flatMap { it.archiveFile })
+            task.jarFile.set(
+                project.tasks.named("jar", org.gradle.api.tasks.bundling.Jar::class.java).flatMap { it.archiveFile },
+            )
             task.outputDirectory.set(project.layout.buildDirectory.dir("omlJar"))
             task.projectName.set(project.name)
             task.projectVersion.set(project.version.toString())

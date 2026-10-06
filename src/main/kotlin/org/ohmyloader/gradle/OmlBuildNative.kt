@@ -18,7 +18,7 @@ import javax.inject.Inject
  * `src/main/kotlin/org/ohmyloader/gradle/native/`, the loader's at `build-logic/oml-native-build/`;
  * kept in sync by hand) for the platform matrix and the zig-out -> layout naming.
  * Incrementality: [sourceFiles] vs [buildOutputDir] fingerprints
- * (zig's own cache compiles only what changed underneath); zig's cross compilation is free — every target
+ * (Zig's own cache compiles only what changed underneath); Zig's cross compilation is free — every target
  * is a `-Dtarget=` flag — so the *whole* platform matrix is built, and each target deploys straight after
  * its own build into the `build/<plat>/<arch>/release/` layout that [OmlNativeLayout.candidatePaths]
  * resolves, because every target installs into the same `zig-out/` and a later target would overwrite an
@@ -34,7 +34,7 @@ internal abstract class OmlBuildNative : DefaultTask() {
     @get:Internal
     abstract val nativeProjectDir: DirectoryProperty
 
-    /** Everything that goes into the library: the zig sources and the build recipe itself. */
+    /** Everything that goes into the library: the Zig sources and the build recipe itself. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sourceFiles: ConfigurableFileCollection
@@ -51,7 +51,7 @@ internal abstract class OmlBuildNative : DefaultTask() {
             val result = exec.exec { spec ->
                 spec.workingDir = dir
                 spec.executable = "zig"
-                // zig's standardOptimizeOption defaults to Debug; ReleaseFast must be explicit.
+                // Zig's standardOptimizeOption defaults to Debug; ReleaseFast must be explicit.
                 spec.args("build", "-Dtarget=${target.triple}", "-Doptimize=ReleaseFast")
                 spec.isIgnoreExitValue = true
             }
@@ -67,7 +67,7 @@ internal abstract class OmlBuildNative : DefaultTask() {
             "oml-native rebuilt via zig: {} targets ({}), deployed under {}/build",
             matrix.size,
             matrix.joinToString(" ") { it.triple },
-            dir
+            dir,
         )
     }
 

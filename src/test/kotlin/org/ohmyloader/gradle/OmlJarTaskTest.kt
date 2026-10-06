@@ -5,6 +5,7 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import java.io.File
+import java.util.Locale.getDefault
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
@@ -69,7 +70,7 @@ class OmlJarTaskTest {
         val source = File(createTempDirectory("omljar-src").toFile(), "built.jar")
         modJar(source, modId = "testmod", version = "0.1.0", dependencies = listOf("other@>=1.0"))
 
-        val (_, output) = runTask(source)
+        val [_, output] = runTask(source)
 
         assertEquals("testmod-0.1.0.jar", output.name, "the single-mod name carries the id and version")
         java.util.jar.JarFile(output).use { jar ->
@@ -106,7 +107,7 @@ class OmlJarTaskTest {
         JarOutputStream(source.outputStream()).use { jar ->
             for (id in listOf("mod_a", "mod_b")) {
                 val writer = ClassWriter(0)
-                val internal = "org/example/${id.capitalize()}"
+                val internal = "org/example/${id.replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }}"
                 writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, internal, null, "java/lang/Object", null)
                 writer.visitAnnotation("Lorg/ohmyloader/api/Mod;", true).apply {
                     visit("id", id)
@@ -120,12 +121,15 @@ class OmlJarTaskTest {
             }
         }
 
-        val (_, output) = runTask(source, projectName = "multi")
+        val [_, output] = runTask(source, projectName = "multi")
 
         assertEquals("multi-9.9.9.jar", output.name, "several mods share the project-named distribution")
         val read = java.util.jar.JarFile(output)
         read.use { jar ->
-            assertEquals("mod_a, mod_b", jar.manifest.mainAttributes.getValue(java.util.jar.Attributes.Name("OML-Mod-Id")))
+            assertEquals(
+                "mod_a, mod_b",
+                jar.manifest.mainAttributes.getValue(java.util.jar.Attributes.Name("OML-Mod-Id")),
+            )
         }
     }
 }
