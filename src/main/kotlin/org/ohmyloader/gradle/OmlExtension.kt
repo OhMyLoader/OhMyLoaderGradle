@@ -8,31 +8,28 @@ import org.gradle.api.provider.Property
 /**
  * `oml { ... }` — the whole declaration surface of the plugin.
  *
- * Every field is a Gradle managed property: conventions are installed inside the consumer's `plugins { }`
- * block, *before* the rest of their script runs, so an eager read would only ever see the default (a
- * `Property`/`Provider` is read when used, not when declared), and the configuration cache refuses to
- * serialize a task action that reaches back into the `Project` — a managed `DirectoryProperty`
- * serializes cleanly, a captured `var runDir: File` would not. Paths are absolute throughout: the run
- * tasks launch in a working directory different from the project directory, and the runtime receives the
- * paths as `-D` properties where a relative path would resolve against the wrong base — failing silently
- * (a wrong mods directory simply loads no mods).
+ * Every field is a Gradle managed property. Conventions are installed inside the consumer's
+ * `plugins { }` block, *before* the rest of their script runs, so an eager read would only ever see
+ * the default; and the configuration cache refuses to serialize a task action that reaches back into
+ * the `Project` — a managed `DirectoryProperty` serializes cleanly, a captured `var runDir: File`
+ * would not. Paths are absolute throughout: the run tasks work in a different directory than the
+ * project, and the runtime takes them as `-D` properties where a relative path would resolve against
+ * the wrong base and fail silently — a wrong mods directory simply loads no mods.
  */
 abstract class OmlExtension {
 
     /**
      * The Minecraft version this project targets, e.g. `26.3`.
      *
-     * Intentionally **without** a convention. Defaulting this would be worse than failing: a project
-     * that forgot to declare it would fetch and launch a version nobody asked for, and the mismatch
-     * would only surface as a confusing injection failure much later. The fetch tasks fail with a
-     * message that names the property instead.
+     * Intentionally **without** a convention: a project that forgot to declare it would otherwise
+     * fetch and launch a version nobody asked for, surfacing only as a confusing injection failure
+     * much later. The fetch tasks fail with a message naming this property instead.
      *
-     * The literal `snapshot` is an alias: resolved to the version manifest's `latest.snapshot` at task
-     * execution, so a project tracking snapshots never bumps this value. The [adapterArtifact]
-     * convention already derives `oml-adapter-snapshot` for it. Run state under `runDir` is keyed by
-     * this literal and therefore shared between snapshots — every fetch re-verifies by SHA-1, so a
-     * new snapshot replaces the old files, but libraries the old snapshot had and the new one dropped
-     * are not swept; delete the directory if a mixed-library oddity appears.
+     * The literal `snapshot` is an alias resolved to the manifest's `latest.snapshot` at task
+     * execution, so tracking snapshots never means editing this value; [adapterArtifact]'s
+     * convention derives `oml-adapter-snapshot` for it. Run state is keyed by the literal, so it is
+     * shared between snapshots — fetches re-verify by SHA-1 and replace changed files, but libraries
+     * a superseded snapshot dropped are never swept.
      */
     abstract val minecraftVersion: Property<String>
 
@@ -49,14 +46,12 @@ abstract class OmlExtension {
     /**
      * The artifactId of the per-version adapter on the launch classpath, e.g. `oml-adapter-26_3`.
      *
-     * Defaults to `oml-adapter-` + [minecraftVersion] with dots replaced by underscores — the transform
-     * that puts the right adapter on the classpath without the user naming it; a *convention*, so an
-     * unusual version id can be overridden. Snapshot versions are the case that must override it: the
-     * snapshot adapter is `oml-adapter-snapshot` for every snapshot id (26.4-snapshot-2 and on), so a
-     * project tracking snapshots sets `adapterArtifact = "oml-adapter-snapshot"` explicitly. Without an
-     * adapter there is no `IAdapter` implementation and
-     * the launcher dies with "no IAdapter implementation found": the loader reaches the game through a
-     * per-version integration layer, and this artifact *is* that layer.
+     * Defaults to `oml-adapter-` + [minecraftVersion] with dots replaced by underscores — a
+     * *convention*, so an unusual version id can override it. Snapshot versions are the case that
+     * must: the snapshot adapter is `oml-adapter-snapshot` for every snapshot id, so a project
+     * tracking snapshots sets it explicitly. Without an adapter there is no `IAdapter`
+     * implementation and the launcher dies with "no IAdapter implementation found" — the loader
+     * reaches the game through this per-version integration layer, so it *is* the layer.
      */
     abstract val adapterArtifact: Property<String>
 
