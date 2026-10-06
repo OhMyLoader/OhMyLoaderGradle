@@ -312,12 +312,19 @@ class OmlPlugin : Plugin<Project> {
             val modJar = project.tasks.named("jar", Jar::class.java)
             task.dependsOn(modJar)
             val modJarFile = modJar.get().archiveFile.get().asFile
+            // Deployed under the project's base name, version-independent: a version bump must not
+            // leave the previous build in mods/ as a second copy of the same mod — two copies are
+            // two ModContainers, and the second one's registry writes die with "duplicate key".
+            // Versioned variants from earlier deploys are removed in the same pass.
+            val deployName = "${project.name}.jar"
+            val staleCopyPattern = Regex(Regex.escape(project.name) + "-.*\\.jar")
             // One action, not two `doFirst` calls. Gradle *prepends* them, so of two handlers the second
             // one registered runs first — which silently inverts the order the code reads. Splitting
             // "create the directory" from "write into the directory" is exactly how that bites.
             task.doFirst { t ->
                 gameDirToCreate.mkdirs()
-                val deployed = File(modsDirectory, modJarFile.name)
+                modsDirectory.listFiles { f -> staleCopyPattern.matches(f.name) }?.forEach { it.delete() }
+                val deployed = File(modsDirectory, deployName)
                 deployModJar(modJarFile, deployed)
                 t.logger.lifecycle("[oml] mods directory: ${modsDirectory.absolutePath}")
                 t.logger.lifecycle("[oml] mod deployed: ${deployed.name}")
@@ -394,6 +401,12 @@ class OmlPlugin : Plugin<Project> {
             val modJar = project.tasks.named("jar", Jar::class.java)
             task.dependsOn(modJar)
             val modJarFile = modJar.get().archiveFile.get().asFile
+            // Version-independent deploy name, exactly as on the client side: a version bump must
+            // not leave the previous build in the shared mods/ directory as a second copy of the
+            // same mod (two ModContainers, and the second one's registry writes die with
+            // "duplicate key"). Versioned leftovers are removed in the same pass.
+            val deployName = "${project.name}.jar"
+            val staleCopyPattern = Regex(Regex.escape(project.name) + "-.*\\.jar")
             // One action, and here it is load-bearing: Gradle *prepends* `doFirst` handlers, so a second
             // one registered after this would run *before* it, and the write would fail with a bare
             // FileNotFoundException because the directory it writes into does not exist yet.
@@ -404,7 +417,8 @@ class OmlPlugin : Plugin<Project> {
             task.doFirst {
                 gameDir.mkdirs()
                 eulaFile.writeText("eula=true\n")
-                deployModJar(modJarFile, File(modsDirectory, modJarFile.name))
+                modsDirectory.listFiles { f -> staleCopyPattern.matches(f.name) }?.forEach { it.delete() }
+                deployModJar(modJarFile, File(modsDirectory, deployName))
                 // The dedicated server's whole console is stdin (`/stop`, `op`, `/whitelist`); a
                 // JavaExec without it hands the server an empty stream, so typed commands vanish.
                 // Set in the action rather than at configuration time because `System.in` is not
