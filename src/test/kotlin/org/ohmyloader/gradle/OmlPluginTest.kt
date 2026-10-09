@@ -1,6 +1,7 @@
 package org.ohmyloader.gradle
 
 import org.gradle.api.Project
+import org.gradle.api.artifacts.FileCollectionDependency
 import org.gradle.api.tasks.JavaExec
 import org.gradle.testfixtures.ProjectBuilder
 import java.io.File
@@ -89,6 +90,43 @@ class OmlPluginTest {
         // would put a second copy of OML's classes inside every mod jar.
         val ids = project().dependencyIds("compileOnly")
         assertTrue(ids.contains("org.ohmyloader:oml-api"), "compileOnly does not carry oml-api: $ids")
+    }
+
+    @Test
+    fun `the version-facing API rides the same name transform as the adapter`() {
+        // 26.3 -> oml-api-26_3: the mod compiles against the artifact whose types name that version's
+        // game classes, so the coordinate must follow the version the project declared.
+        val project = project()
+        project.oml().minecraftVersion.set("26.3")
+
+        val ids = project.dependencyIds("compileOnly", withVersion = true)
+        val api = OmlExtension.DEFAULT_API_VERSION
+        assertTrue(ids.contains("org.ohmyloader:oml-api-26_3:$api"), "compileOnly: $ids")
+    }
+
+    @Test
+    fun `the game classes are on the compile classpath and fetched before compiling`() {
+        val project = project()
+        project.oml().minecraftVersion.set("26.3")
+
+        val game = project.configurations.getByName("compileOnly").dependencies
+            .filterIsInstance<FileCollectionDependency>()
+        assertEquals(1, game.size, "the game classes are not attached as one file collection: $game")
+        assertTrue(
+            game.single().files.any { it.name == "client.jar" },
+            "the client jar is not part of the compile classpath: ${game.single().files}",
+        )
+
+        // A file collection carries no producer edge, so the compile tasks must: without it a fresh clone
+        // compiles against a jar that has not been downloaded yet.
+        for (name in listOf("compileJava", "compileTestJava")) {
+            val task = project.tasks.getByName(name)
+            val deps = task.taskDependencies.getDependencies(task).map { it.name }
+            assertTrue(
+                "fetchClientJar" in deps && "fetchLibraries" in deps,
+                "$name does not fetch the game classes first: $deps",
+            )
+        }
     }
 
     @Test

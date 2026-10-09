@@ -4,6 +4,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 import org.ohmyloader.devtools.AssetDownloader
@@ -11,9 +12,9 @@ import java.io.File
 
 /**
  * `org.ohmyloader.gradle` — build support for an OhMyLoader mod. Applying it installs the [OmlExtension]
- * (`oml { ... }`) with conventions for every path, puts `org.ohmyloader:oml-api` on the project's
- * `compileOnly` classpath (so mod sources can use the loader's types without the loader being bundled
- * into the mod jar), and registers the tasks a development run needs: the fetch tasks — `fetchClientJar`,
+ * (`oml { ... }`) with conventions for every path, puts the loader's API artifacts and the game's own
+ * classes on the project's `compileOnly` classpath (so mod sources can name those types without any of
+ * them being bundled into the mod jar), and registers the tasks a development run needs: the fetch tasks — `fetchClientJar`,
  * `fetchLibraries`, `extractNatives`, `fetchAssets` — all downloading **in-process** through the typed
  * `oml-devtools` API, and `runClient` / `runServer`, which launch the game through `OMLBootstrap` with
  * the JVM contract OML requires. The client jar is the game jar for both sides: the modern server
@@ -30,8 +31,8 @@ class OmlPlugin : Plugin<Project> {
         // apply time in a Kotlin project where `kotlin("jvm")` brings the Java plugin along slightly
         // later. `java-library` extends `java`, so one hook covers both.
         project.plugins.withType(JavaPlugin::class.java) {
-            attachApiDependency(project, oml)
             val fetch = registerFetchTasks(project, oml)
+            attachApiDependency(project, oml, fetch)
             registerRunTasks(project, oml, fetch)
             registerOmlJar(project)
         }
@@ -80,9 +81,7 @@ class OmlPlugin : Plugin<Project> {
         oml.modsDir.convention(oml.runDir.dir("mods"))
         oml.assetsDir.convention(oml.runDir.dir("assets"))
 
-        oml.adapterArtifact.convention(
-            oml.minecraftVersion.map { version -> "oml-adapter-" + version.replace('.', '_') },
-        )
+        oml.adapterArtifact.convention(oml.minecraftVersion.map { version -> "oml-adapter-" + versionArtifactSuffix(version) })
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -90,20 +89,52 @@ class OmlPlugin : Plugin<Project> {
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * `compileOnly("org.ohmyloader:oml-api:<version>")`.
+     * What a mod compiles against: `org.ohmyloader:oml-api` (the version-neutral surface),
+     * `org.ohmyloader:oml-api-<version>` (the version-facing one — same name rule as the adapter
+     * artifact, because both are per-version by construction), and the game's own classes.
      *
-     * `compileOnly`, not `implementation`: the API is supplied by the loader at runtime, and bundling it
-     * would put a second copy of OML's classes inside the mod jar, where the two copies would disagree
-     * the moment either is updated independently. Added through `addProvider` so the version is read
-     * when the configuration resolves — this runs during `plugins { }`, before the consumer has had any
-     * chance to set `apiVersion`.
+     * `compileOnly`, not `implementation`: all of it is supplied at run time — the loader by the launch,
+     * the game classes by the game jar — and bundling it would put a second copy inside the mod jar,
+     * where the two copies disagree the moment either is updated independently. Added through
+     * `addProvider` so the versions are read when the configuration resolves: this runs during
+     * `plugins { }`, before the consumer has had any chance to set them.
+     *
+     * The game jar belongs on this classpath because the version-facing API names game types: a mod that
+     * reads `event.player` as a `ServerPlayer` must compile against the very class the game runs, and a
+     * second-hand copy of it would fail every hand-off. The cost is that a fresh clone downloads the
+     * client jar and the version's libraries before its first compile — the same files `runClient`
+     * launches, so a project that runs never pays for it twice.
      */
-    private fun attachApiDependency(project: Project, oml: OmlExtension) {
+    private fun attachApiDependency(project: Project, oml: OmlExtension, fetch: FetchTasks) {
         project.dependencies.addProvider(
             "compileOnly",
             oml.apiVersion.map { "org.ohmyloader:oml-api:$it" },
         )
+        project.dependencies.addProvider(
+            "compileOnly",
+            oml.minecraftVersion.zip(oml.apiVersion) { version, api ->
+                "org.ohmyloader:oml-api-${versionArtifactSuffix(version)}:$api"
+            },
+        )
+
+        val gameClasses = project.files(
+            oml.clientJar,
+            // The version JSON's own libraries, not a hand-pinned list: game types reach into Brigadier
+            // (`Component` is a `com.mojang.brigadier.Message`) and DataFixerUpper (every registry
+            // interface extends `Keyable`), and the set a snapshot needs moves with the snapshot.
+            project.fileTree(oml.librariesDir).matching { it.include("**/*.jar") },
+        )
+        project.dependencies.add("compileOnly", gameClasses)
+
+        // A file collection carries no producer edge, so the compile tasks declare the download
+        // themselves: without this a fresh clone compiles against a jar that is not there yet.
+        project.tasks.withType(AbstractCompile::class.java).configureEach {
+            it.dependsOn(fetch.clientJar, fetch.libraries)
+        }
     }
+
+    /** The per-version artifact-name suffix: game version `26.3` is `oml-adapter-26_3` and `oml-api-26_3`. */
+    private fun versionArtifactSuffix(version: String) = version.replace('.', '_')
 
     // ---------------------------------------------------------------------------------------------
     // Fetching
