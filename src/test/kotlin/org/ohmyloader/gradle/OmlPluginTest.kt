@@ -253,6 +253,41 @@ class OmlPluginTest {
     }
 
     // -------------------------------------------------------------------------------------------
+    // Stale mod copies and the server EULA
+    // -------------------------------------------------------------------------------------------
+
+    private fun modsDirectory(): File =
+        File("build/test-projects/mods-${counter++}").apply { mkdirs() }
+
+    /**
+     * `oml` and `oml-utils` share a name prefix, so the stale-copy cleanup may match a *different*
+     * project's jar: the regression behind narrowing the old `<name>-.*\.jar` delete to the current
+     * version's copy only.
+     */
+    @Test
+    fun `stale copy cleanup deletes this project's versioned copy and only it`() {
+        val mods = modsDirectory()
+        val deploy = File(mods, "oml.jar").apply { writeText("deploy") }
+        val stale = File(mods, "oml-1.0.jar").apply { writeText("stale copy of this project") }
+        val sibling = File(mods, "oml-utils-2.0.jar").apply { writeText("a different project's mod") }
+        val unrelated = File(mods, "other-1.0.jar").apply { writeText("a mod with another name") }
+        val warned = mutableListOf<String>()
+
+        cleanStaleModCopies(mods, "oml", "1.0", warned::add)
+
+        assertFalse(stale.exists(), "the current version's stale copy survived the cleanup")
+        assertTrue(deploy.exists(), "the deploy target itself was removed")
+        assertTrue(sibling.exists(), "a jar that merely shares the name prefix was deleted")
+        assertTrue(unrelated.exists(), "an unrelated jar was deleted")
+        assertEquals(listOf(sibling.name), warned.map { it.substringAfter("] ").substringBefore(" in ") })    }
+
+    @Test
+    fun `stale copy cleanup tolerates a mods directory that does not exist yet`() {
+        val mods = modsDirectory().apply { deleteRecursively() }
+        cleanStaleModCopies(mods, "oml", "1.0") {}
+    }
+
+    // -------------------------------------------------------------------------------------------
     // The run tasks
     // -------------------------------------------------------------------------------------------
 

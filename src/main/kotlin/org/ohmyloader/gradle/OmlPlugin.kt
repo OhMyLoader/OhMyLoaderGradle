@@ -348,15 +348,14 @@ class OmlPlugin : Plugin<Project> {
             // Deployed under the project's base name, version-independent: a version bump must not
             // leave the previous build in mods/ as a second copy of the same mod — two copies are
             // two ModContainers, and the second one's registry writes die with "duplicate key".
-            // Versioned variants from earlier deploys are removed in the same pass.
+            // Stale versioned copies are removed by cleanStaleModCopies.
             val deployName = "${project.name}.jar"
-            val staleCopyPattern = Regex(Regex.escape(project.name) + "-.*\\.jar")
             // One action, not two `doFirst` calls. Gradle *prepends* them, so of two handlers the second
             // one registered runs first — which silently inverts the order the code reads. Splitting
             // "create the directory" from "write into the directory" is exactly how that bites.
             task.doFirst { t ->
                 gameDirToCreate.mkdirs()
-                modsDirectory.listFiles { f -> staleCopyPattern.matches(f.name) }?.forEach { it.delete() }
+                cleanStaleModCopies(modsDirectory, project.name, project.version.toString()) { t.logger.warn(it) }
                 val deployed = File(modsDirectory, deployName)
                 deployModJar(modJarFile, deployed)
                 t.logger.lifecycle("[oml] mods directory: ${modsDirectory.absolutePath}")
@@ -437,9 +436,8 @@ class OmlPlugin : Plugin<Project> {
             // Version-independent deploy name, exactly as on the client side: a version bump must
             // not leave the previous build in the shared mods/ directory as a second copy of the
             // same mod (two ModContainers, and the second one's registry writes die with
-            // "duplicate key"). Versioned leftovers are removed in the same pass.
+            // "duplicate key"). Stale versioned copies are removed by cleanStaleModCopies.
             val deployName = "${project.name}.jar"
-            val staleCopyPattern = Regex(Regex.escape(project.name) + "-.*\\.jar")
             // One action, and here it is load-bearing: Gradle *prepends* `doFirst` handlers, so a second
             // one registered after this would run *before* it, and the write would fail with a bare
             // FileNotFoundException because the directory it writes into does not exist yet.
@@ -447,10 +445,10 @@ class OmlPlugin : Plugin<Project> {
             // A first server start refuses to run before the EULA is accepted. Writing it here is for
             // local development only, and only because the person running this task is the one deciding;
             // a real deployment is expected to read and accept https://aka.ms/MinecraftEULA by hand.
-            task.doFirst {
+            task.doFirst { t ->
                 gameDir.mkdirs()
                 eulaFile.writeText("eula=true\n")
-                modsDirectory.listFiles { f -> staleCopyPattern.matches(f.name) }?.forEach { it.delete() }
+                cleanStaleModCopies(modsDirectory, project.name, project.version.toString()) { t.logger.warn(it) }
                 deployModJar(modJarFile, File(modsDirectory, deployName))
                 // The dedicated server's whole console is stdin (`/stop`, `op`, `/whitelist`); a
                 // JavaExec without it hands the server an empty stream, so typed commands vanish.
@@ -508,6 +506,39 @@ class OmlPlugin : Plugin<Project> {
             // Last, so a consumer's own requirement overrides anything OML supplied rather than being
             // overridden by it.
             addAll(oml.extraGameArgs.getOrElse(emptyList()))
+        }
+}
+
+/**
+ * Removes this project's stale jar copies from the (shared) mods directory. The deploy name is
+ * version-independent, so leftovers of the earlier versioned scheme read `<name>-<version>.jar`;
+ * only the copy naming the *current* version is deleted, and only after the delete actually
+ * succeeded does silence follow. Any other jar under the `<name>-` prefix is reported, never
+ * deleted: project names can be prefixes of one another (`oml` vs `oml-utils`), so a wider match
+ * would remove a different project's mod jar.
+ *
+ * Top-level like [resolveAssetIndexArgs] so tests can call it directly.
+ */
+internal fun cleanStaleModCopies(
+    modsDirectory: File,
+    projectName: String,
+    projectVersion: String,
+    warn: (String) -> Unit,
+) {
+    val versionedCopy = File(modsDirectory, "$projectName-$projectVersion.jar")
+    if (versionedCopy.isFile && !versionedCopy.delete()) {
+        warn("[oml] could not delete the stale copy ${versionedCopy.name} — is a launch holding it open?")
+    }
+    modsDirectory
+        .listFiles { f ->
+            f.isFile && f.name.endsWith(".jar") &&
+                f.name.startsWith("$projectName-") && f.name != versionedCopy.name
+        }
+        ?.forEach {
+            warn(
+                "[oml] ${it.name} in ${modsDirectory.absolutePath} matches this project's name " +
+                    "prefix but is not its jar (${projectName}.jar) — not deleting it",
+            )
         }
 }
 
