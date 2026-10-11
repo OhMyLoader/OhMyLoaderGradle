@@ -59,11 +59,12 @@ abstract class OmlExtension {
     abstract val heap: Property<String>
 
     /**
-     * Extra arguments appended to the game's own argument list, after the ones OML supplies.
+     * Extra arguments appended to the **client's** game argument list, after the ones OML supplies.
      *
      * This is how a version-specific requirement is expressed from the consumer side — a game line that
      * needs `--userProperties {}`, say — without the plugin hard-coding a per-version table it cannot
-     * keep current.
+     * keep current. `runServer` does not consume this: the dedicated server takes no game arguments
+     * beyond `--nogui`.
      */
     abstract val extraGameArgs: ListProperty<String>
 

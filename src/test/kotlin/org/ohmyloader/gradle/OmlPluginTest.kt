@@ -344,6 +344,23 @@ class OmlPluginTest {
     }
 
     @Test
+    fun `extraGameArgs reach the client launch only`() {
+        // runServer consumes no game arguments beyond --nogui, so a consumer's extraGameArgs are
+        // silently dropped there rather than misdirected at a main that cannot parse them.
+        val project = project()
+        project.oml().minecraftVersion.set("26.3")
+        project.oml().extraGameArgs.set(listOf("--demoFlag", "demoValue"))
+
+        val client = project.tasks.getByName("runClient") as JavaExec
+        assertTrue(client.args.contains("--demoFlag") && client.args.contains("demoValue"), client.args.toString())
+        // Appended after the arguments OML supplies, so a consumer's requirement can override OML's.
+        assertTrue(client.args.lastIndexOf("demoValue") > client.args.indexOf("--userProperties") + 1, client.args.toString())
+
+        val server = project.tasks.getByName("runServer") as JavaExec
+        assertFalse(server.args.contains("--demoFlag"), server.args.toString())
+    }
+
+    @Test
     fun `runClient depends on everything a launch needs, including the natives`() {
         val project = project()
         project.oml().minecraftVersion.set("26.3")
