@@ -447,7 +447,7 @@ class OmlPlugin : Plugin<Project> {
             // a real deployment is expected to read and accept https://aka.ms/MinecraftEULA by hand.
             task.doFirst { t ->
                 gameDir.mkdirs()
-                eulaFile.writeText("eula=true\n")
+                writeEulaAcceptance(eulaFile) { t.logger.warn(it) }
                 cleanStaleModCopies(modsDirectory, project.name, project.version.toString()) { t.logger.warn(it) }
                 deployModJar(modJarFile, File(modsDirectory, deployName))
                 // The dedicated server's whole console is stdin (`/stop`, `op`, `/whitelist`); a
@@ -540,6 +540,30 @@ internal fun cleanStaleModCopies(
                     "prefix but is not its jar (${projectName}.jar) — not deleting it",
             )
         }
+}
+
+/**
+ * Writes the dev-launch EULA acceptance unless the file explicitly declines it (`eula=false`):
+ * a refusal recorded there is the user's decision, and overwriting it would accept the agreement
+ * on their behalf — the server then refuses to start with its own message pointing at the file.
+ * A missing file is the uninitialized case and is written as usual.
+ *
+ * Top-level like [resolveAssetIndexArgs] so tests can call it directly.
+ */
+internal fun writeEulaAcceptance(eulaFile: File, warn: (String) -> Unit) {
+    // Comment lines start with `#`, so only a real setting line can match. A missing file is the
+    // uninitialized case and is written below, so its absence is not a decline.
+    val declined = eulaFile.isFile && eulaFile.useLines { lines ->
+        lines.any { it.trimStart().matches(Regex("eula\\s*=\\s*false\\s*")) }
+    }
+    if (declined) {
+        warn(
+            "[oml] ${eulaFile.absolutePath} holds eula=false — not overwriting it; the server " +
+                "refuses to start until the EULA is accepted (https://aka.ms/MinecraftEULA)",
+        )
+        return
+    }
+    eulaFile.writeText("eula=true\n")
 }
 
 /**
