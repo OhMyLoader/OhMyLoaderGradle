@@ -35,6 +35,10 @@ class OmlPlugin : Plugin<Project> {
             attachApiDependency(project, oml, fetch)
             registerRunTasks(project, oml, fetch)
             registerOmlJar(project)
+            // At the end of evaluation, before anything resolves the coordinates and paths that
+            // derive from the version: an absent value surfacing there is an opaque provider
+            // "no value" error that names no property (see requireMinecraftVersion).
+            project.afterEvaluate { requireMinecraftVersion(oml) }
         }
     }
 
@@ -507,6 +511,21 @@ class OmlPlugin : Plugin<Project> {
             // overridden by it.
             addAll(oml.extraGameArgs.getOrElse(emptyList()))
         }
+}
+
+/**
+ * Fails the configuration when the consumer never declared the game version. Run from
+ * `afterEvaluate` — the first point where the consumer's `oml { }` block has had its say and the
+ * last one before dependency resolution turns the absent value into an error that names no
+ * property. Top-level like [resolveAssetIndexArgs] so tests can call it directly.
+ */
+internal fun requireMinecraftVersion(oml: OmlExtension) {
+    require(oml.minecraftVersion.isPresent) {
+        "oml.minecraftVersion is not set — declare the game version this project targets, e.g. " +
+            "oml { minecraftVersion.set(\"26.3\") }. The plugin derives its artifact coordinates " +
+            "(oml-api-<version>, oml-adapter-<version>) and the run layout from it, so there is no " +
+            "default it could guess."
+    }
 }
 
 /**

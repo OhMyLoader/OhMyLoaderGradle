@@ -208,6 +208,23 @@ class OmlPluginTest {
     }
 
     @Test
+    fun `an undeclared game version fails the configuration naming the property`() {
+        // requireMinecraftVersion runs from afterEvaluate, so the failure lands before dependency
+        // resolution turns the absent value into an opaque provider "no value" error.
+        val failure = assertFailsWith<IllegalArgumentException> {
+            requireMinecraftVersion(project().oml())
+        }
+        assertTrue(failure.message!!.contains("oml.minecraftVersion"), failure.message)
+        assertTrue(failure.message!!.contains("26.3"), failure.message)
+    }
+
+    @Test
+    fun `a declared game version passes the configuration check`() {
+        val oml = project().oml().apply { minecraftVersion.set("26.3") }
+        requireMinecraftVersion(oml)
+    }
+
+    @Test
     fun `every path convention hangs off runDir`() {
         val project = project()
         val oml = project.oml()

@@ -23,7 +23,9 @@ abstract class OmlExtension {
      *
      * Intentionally **without** a convention: a project that forgot to declare it would otherwise
      * fetch and launch a version nobody asked for, surfacing only as a confusing injection failure
-     * much later. The fetch tasks fail with a message naming this property instead.
+     * much later. The plugin fails the configuration at the end of evaluation with a message naming
+     * this property — before dependency resolution turns the absent value into an opaque "no value"
+     * error (see `requireMinecraftVersion`).
      *
      * The literal `snapshot` is an alias resolved to the manifest's `latest.snapshot` at task
      * execution, so tracking snapshots never means editing this value; [adapterArtifact]'s
