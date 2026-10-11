@@ -61,7 +61,7 @@ abstract class OmlJarTask : DefaultTask() {
 
             val output = File(outputDirectory.get().asFile, distributionName(mods)).apply { parentFile.mkdirs() }
             writeDistributable(source, output, mods)
-            println("[oml] distributable mod jar: ${output.path}")
+            logger.lifecycle("[oml] distributable mod jar: ${output.path}")
         } finally {
             staging.deleteRecursively()
         }
