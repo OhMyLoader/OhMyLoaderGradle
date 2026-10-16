@@ -1,0 +1,10 @@
+# The sources are LF in this repository, and a contributor whose git has core.autocrlf=true otherwise
+# rewrites whole files to CRLF on checkout or `git apply`. Only the listed types are touched — nothing
+# is renormalized wholesale.
+*.kt text eol=lf
+*.kts text eol=lf
+*.toml text eol=lf
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
