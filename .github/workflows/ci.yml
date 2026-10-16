@@ -70,11 +70,13 @@ jobs:
           distribution: zulu
           java-version: '27'
       - uses: gradle/actions/setup-gradle@v6
-      # The same publish set as the build job: `publish` runs the build first, which resolves
-      # exactly those coordinates from mavenLocal.
+      # The same publish set as the build job, and the same version: this job publishes the plugin at
+      # the tag version, and the plugin's own `implementation("org.ohmyloader:oml-core:$version")`
+      # lines resolve that version — without -Poml_version the loader lands in mavenLocal as the
+      # gradle.properties SNAPSHOT and the release cannot resolve the dependencies it declares.
       - name: Publish the loader coordinates this plugin resolves
         run: |
-          ./gradlew -p OhMyLoader \
+          ./gradlew -p OhMyLoader -Poml_version="${GITHUB_REF_NAME#v}" \
             :oml-devtools:publishMavenPublicationToMavenLocal \
             :oml-core:publishMavenPublicationToMavenLocal \
             :oml-api:publishMavenPublicationToMavenLocal \
