@@ -29,7 +29,8 @@ abstract class OmlExtension {
      *
      * The literal `snapshot` is an alias resolved to the manifest's `latest.snapshot` at task
      * execution, so tracking snapshots never means editing this value; [adapterArtifact]'s
-     * convention derives `oml-adapter-snapshot` for it. Run state is keyed by the literal, so it is
+     * convention derives `oml-adapter-snapshot` for it, and [apiArtifact] is the one property a
+     * snapshot project does have to name. Run state is keyed by the literal, so it is
      * shared between snapshots — fetches re-verify by SHA-1 and replace changed files, but libraries
      * a superseded snapshot dropped are never swept.
      */
@@ -44,6 +45,18 @@ abstract class OmlExtension {
      * `NoSuchMethodError` far from its cause.
      */
     abstract val apiVersion: Property<String>
+
+    /**
+     * The artifactId of the version-facing mod API compiled against, e.g. `oml-api-26_3`.
+     *
+     * Defaults to `oml-api-` + [minecraftVersion] with dots replaced by underscores. Snapshot tracking
+     * is the case that must override it: the loader ships one version-facing API module and the snapshot
+     * adapter is built against that same module, so `oml-api-snapshot` (and any
+     * `oml-api-26_4-snapshot-2`) is not a coordinate that exists to be resolved. Set it to the API the
+     * snapshot adapter carries, e.g. `oml { apiArtifact.set("oml-api-26_3") }`; the plugin fails the
+     * configuration naming this property rather than handing resolution a name it invented.
+     */
+    abstract val apiArtifact: Property<String>
 
     /**
      * The artifactId of the per-version adapter on the launch classpath, e.g. `oml-adapter-26_3`.

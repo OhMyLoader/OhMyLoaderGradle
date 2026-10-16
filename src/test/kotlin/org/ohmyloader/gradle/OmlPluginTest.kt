@@ -225,6 +225,26 @@ class OmlPluginTest {
     }
 
     @Test
+    fun `a snapshot version has to name the API artifact it compiles against`() {
+        // The loader ships one version-facing API module and builds the snapshot adapter against it, so
+        // the derived name is a coordinate nobody publishes; resolution would fail with a search-path
+        // list instead of naming the property to set.
+        val oml = project().oml().apply { minecraftVersion.set("snapshot") }
+        val failure = assertFailsWith<IllegalArgumentException> { requireResolvableApiArtifact(oml) }
+        assertTrue(failure.message!!.contains("oml.apiArtifact"), failure.message)
+        assertTrue(failure.message!!.contains("oml-api-26_3"), failure.message)
+        oml.apiArtifact.set("oml-api-26_3")
+        requireResolvableApiArtifact(oml)
+    }
+
+    @Test
+    fun `a stable game version derives the API artifact`() {
+        val oml = project().oml().apply { minecraftVersion.set("26.3") }
+        assertEquals("oml-api-26_3", oml.apiArtifact.get())
+        requireResolvableApiArtifact(oml)
+    }
+
+    @Test
     fun `every path convention hangs off runDir`() {
         val project = project()
         val oml = project.oml()
