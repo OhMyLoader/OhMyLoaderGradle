@@ -19,9 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # The plugin resolves org.ohmyloader:oml-devtools by Maven coordinate, so CI reproduces
-      # the documented dev loop: publish the loader's devtools to mavenLocal first. Only
-      # devtools — no zig needed, oml-native is not a dependency of this repo.
+      # The plugin resolves loader artifacts by Maven coordinate, so CI reproduces the documented
+      # dev loop: publish into mavenLocal first. Every org.ohmyloader coordinate build.gradle.kts
+      # declares must be here (oml-devtools, oml-core) plus the oml-api / oml-content edges
+      # oml-core's POM carries — a missing one fails as "Could not find org.ohmyloader:…". None of
+      # them touch oml-native, so no zig is needed.
       - uses: actions/checkout@v7
         with:
           repository: OhMyLoader/OhMyLoader
@@ -32,7 +34,13 @@ jobs:
           distribution: zulu
           java-version: '27'
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew -p OhMyLoader :oml-devtools:publishMavenPublicationToMavenLocal
+      - name: Publish the loader coordinates this plugin resolves
+        run: |
+          ./gradlew -p OhMyLoader \
+            :oml-devtools:publishMavenPublicationToMavenLocal \
+            :oml-core:publishMavenPublicationToMavenLocal \
+            :oml-api:publishMavenPublicationToMavenLocal \
+            :oml-content:publishMavenPublicationToMavenLocal
       - run: ./gradlew build
 
   # Tag build: publish the plugin (jar + plugin marker) to GitHub Packages, versioned from
@@ -62,7 +70,15 @@ jobs:
           distribution: zulu
           java-version: '27'
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew -p OhMyLoader :oml-devtools:publishMavenPublicationToMavenLocal
+      # The same publish set as the build job: `publish` runs the build first, which resolves
+      # exactly those coordinates from mavenLocal.
+      - name: Publish the loader coordinates this plugin resolves
+        run: |
+          ./gradlew -p OhMyLoader \
+            :oml-devtools:publishMavenPublicationToMavenLocal \
+            :oml-core:publishMavenPublicationToMavenLocal \
+            :oml-api:publishMavenPublicationToMavenLocal \
+            :oml-content:publishMavenPublicationToMavenLocal
       - run: ./gradlew -Poml_version="${GITHUB_REF_NAME#v}" publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
