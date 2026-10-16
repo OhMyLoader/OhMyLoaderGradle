@@ -4,7 +4,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.compile.AbstractCompile
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 import org.ohmyloader.devtools.AssetDownloader
@@ -136,10 +136,27 @@ class OmlPlugin : Plugin<Project> {
 
         // A file collection carries no producer edge, so the compile tasks declare the download
         // themselves: without this a fresh clone compiles against a jar that is not there yet.
-        project.tasks.withType(AbstractCompile::class.java).configureEach {
+        gameClassConsumingCompileTasks(project).configureEach {
             it.dependsOn(fetch.clientJar, fetch.libraries)
         }
     }
+
+    /**
+     * The tasks that read the game classes off disk: Java's own compile tasks and the Kotlin plugin's.
+     *
+     * Filtering by `AbstractCompile` is not enough — KGP's compile tool is neither a Java
+     * `AbstractCompile` nor a Gradle `SourceTask` — and a `compileKotlin` with no producer edge is
+     * scheduled *before* the download, so a fresh clone (or a CI job that did not restore `run/` first)
+     * fails with every `net.minecraft.*` unresolved while any machine that has compiled once before sees
+     * nothing wrong. The Kotlin half is matched by package and task name rather than by type: the Kotlin
+     * plugin is not on this plugin's compile classpath, and the consumer's version of it is not ours to
+     * pin. `compile*` keeps other plugins' tasks out unless they come from Kotlin's own package.
+     */
+    private fun gameClassConsumingCompileTasks(project: Project) =
+        project.tasks.matching {
+            it is JavaCompile ||
+                it.name.startsWith("compile") && it.javaClass.name.startsWith("org.jetbrains.kotlin.")
+        }
 
     // ---------------------------------------------------------------------------------------------
     // Fetching
