@@ -354,12 +354,16 @@ class OmlPlugin : Plugin<Project> {
             // two ModContainers, and the second one's registry writes die with "duplicate key".
             // Stale versioned copies are removed by cleanStaleModCopies.
             val deployName = "${project.name}.jar"
+            // Read at configuration time: `project` is not serializable, and a task action that reaches
+            // for it makes the configuration-cache store fail after the game has already run.
+            val baseName = project.name
+            val baseVersion = project.version.toString()
             // One action, not two `doFirst` calls. Gradle *prepends* them, so of two handlers the second
             // one registered runs first — which silently inverts the order the code reads. Splitting
             // "create the directory" from "write into the directory" is exactly how that bites.
             task.doFirst { t ->
                 gameDirToCreate.mkdirs()
-                cleanStaleModCopies(modsDirectory, project.name, project.version.toString()) { t.logger.warn(it) }
+                cleanStaleModCopies(modsDirectory, baseName, baseVersion) { t.logger.warn(it) }
                 val deployed = File(modsDirectory, deployName)
                 deployModJar(modJarFile, deployed)
                 t.logger.lifecycle("[oml] mods directory: ${modsDirectory.absolutePath}")
@@ -442,6 +446,10 @@ class OmlPlugin : Plugin<Project> {
             // same mod (two ModContainers, and the second one's registry writes die with
             // "duplicate key"). Stale versioned copies are removed by cleanStaleModCopies.
             val deployName = "${project.name}.jar"
+            // Same reason as on the client side: the sweep's two arguments are read at configuration
+            // time, because a task action holding `project` breaks the configuration-cache store.
+            val baseName = project.name
+            val baseVersion = project.version.toString()
             // One action, and here it is load-bearing: Gradle *prepends* `doFirst` handlers, so a second
             // one registered after this would run *before* it, and the write would fail with a bare
             // FileNotFoundException because the directory it writes into does not exist yet.
@@ -452,7 +460,7 @@ class OmlPlugin : Plugin<Project> {
             task.doFirst { t ->
                 gameDir.mkdirs()
                 writeEulaAcceptance(eulaFile) { t.logger.warn(it) }
-                cleanStaleModCopies(modsDirectory, project.name, project.version.toString()) { t.logger.warn(it) }
+                cleanStaleModCopies(modsDirectory, baseName, baseVersion) { t.logger.warn(it) }
                 deployModJar(modJarFile, File(modsDirectory, deployName))
                 // The dedicated server's whole console is stdin (`/stop`, `op`, `/whitelist`); a
                 // JavaExec without it hands the server an empty stream, so typed commands vanish.
