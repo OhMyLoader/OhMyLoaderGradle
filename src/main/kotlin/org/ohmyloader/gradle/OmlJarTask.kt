@@ -49,7 +49,8 @@ abstract class OmlJarTask : DefaultTask() {
             val mods = ModScanner.scan(scanMods)
             if (mods.isEmpty()) {
                 throw IllegalStateException(
-                    "$source carries no @Mod-annotated class — a jar without an entry point is not a distributable OML mod",
+                    "$source carries no mod the loader would accept: either no @Mod-annotated class, or it was " +
+                        "refused for packing classes under org.ohmyloader. — the refusal names it on stderr above.",
                 )
             }
             val duplicateIds = mods.groupBy { it.id }.filterValues { it.size > 1 }
