@@ -30,6 +30,22 @@ jobs:
           repository: OhMyLoader/OhMyLoader
           ref: main
           path: OhMyLoader
+      # The two gradle.properties must carry the same number: this project resolves
+      # org.ohmyloader:<module>:<its own version> from what the checkout publishes, so a loader
+      # version bump lands as a resolution failure minutes into the build — one that reads like a
+      # broken repository instead of two files that have to be aligned. The release job is exempt:
+      # it overrides both sides with the tag version.
+      - name: The loader version this plugin resolves must match the loader's
+        run: |
+          # Whitespace is stripped because Java properties accept `oml_version = x`, and the read has
+          # to agree with what Gradle resolves.
+          published=$(sed -n 's/[[:space:]]//g; s/^oml_version=//p' OhMyLoader/gradle.properties | head -1)
+          resolved=$(sed -n 's/[[:space:]]//g; s/^oml_version=//p' gradle.properties | head -1)
+          if [ "$published" != "$resolved" ]; then
+            echo "::error::OhMyLoader/gradle.properties publishes $published, this repo's gradle.properties resolves $resolved — align them"
+            exit 1
+          fi
+          echo "both at $resolved"
       - uses: actions/setup-java@v6
         with:
           distribution: zulu

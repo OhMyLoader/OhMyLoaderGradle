@@ -12,7 +12,11 @@ plugins {
 }
 
 group = providers.gradleProperty("oml_group").getOrElse("org.ohmyloader")
-version = providers.gradleProperty("oml_version").getOrElse("0.1.0-SNAPSHOT")
+// gradle.properties is the one home for this coordinate: the loader's gradle.properties is its own
+// source of truth, and the two numbers must be equal because every org.ohmyloader dependency below
+// resolves at exactly this version. A fallback literal here could only publish a stale version
+// silently when that line goes missing.
+version = providers.gradleProperty("oml_version").get()
 
 java {
     toolchain {
