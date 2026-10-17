@@ -26,13 +26,16 @@ dependencies {
     // The typed downloader API this plugin calls in-process.
     implementation("org.ohmyloader:oml-devtools:$version")
     // omlJar scans the built jar with the loader's own ModScanner (same @Mod contract, not a
-    // second one that could drift); ASM rides on the plugin's runtime classpath through it.
+    // second one that could drift); ASM rides on the plugin's runtime classpath through it, so the
+    // version OmlJarTask runs on is the one the loader was built with — pinning it here as well
+    // would only add a second number to keep in step.
     implementation("org.ohmyloader:oml-core:$version")
-    implementation("org.ow2.asm:asm:9.10.1")
-    implementation("org.ow2.asm:asm-tree:9.10.1")
     // gradleApi() brings ProjectBuilder: tests apply the plugin to a throwaway project without a
     // real build, daemon, or network.
     testImplementation(gradleApi())
+    // The tests synthesize @Mod-annotated class files for the scanner; the scanner's own ASM comes
+    // from oml-core, which is on the test runtime classpath but not on its compile classpath.
+    testImplementation(libs.asm)
     testImplementation(kotlin("test"))
 }
 
