@@ -4,8 +4,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.ohmyloader.devtools.AssetDownloader
 import java.io.File
@@ -89,7 +89,13 @@ class OmlPlugin : Plugin<Project> {
         oml.assetsDir.convention(oml.runDir.dir("assets"))
 
         oml.apiArtifact.convention(oml.minecraftVersion.map { version -> "oml-api-" + versionArtifactSuffix(version) })
-        oml.adapterArtifact.convention(oml.minecraftVersion.map { version -> "oml-adapter-" + versionArtifactSuffix(version) })
+        oml.adapterArtifact.convention(
+            oml.minecraftVersion.map { version ->
+                "oml-adapter-" + versionArtifactSuffix(
+                    version,
+                )
+            },
+        )
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -107,7 +107,8 @@ class OmlJarTaskTest {
         JarOutputStream(source.outputStream()).use { jar ->
             for (id in listOf("mod_a", "mod_b")) {
                 val writer = ClassWriter(0)
-                val internal = "org/example/${id.replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }}"
+                val internal =
+                    "org/example/${id.replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }}"
                 writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, internal, null, "java/lang/Object", null)
                 writer.visitAnnotation("Lorg/ohmyloader/api/Mod;", true).apply {
                     visit("id", id)

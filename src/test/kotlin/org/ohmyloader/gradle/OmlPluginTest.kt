@@ -316,7 +316,8 @@ class OmlPluginTest {
         assertTrue(deploy.exists(), "the deploy target itself was removed")
         assertTrue(sibling.exists(), "a jar that merely shares the name prefix was deleted")
         assertTrue(unrelated.exists(), "an unrelated jar was deleted")
-        assertEquals(listOf(sibling.name), warned.map { it.substringAfter("] ").substringBefore(" in ") })    }
+        assertEquals(listOf(sibling.name), warned.map { it.substringAfter("] ").substringBefore(" in ") })
+    }
 
     @Test
     fun `stale copy cleanup tolerates a mods directory that does not exist yet`() {
@@ -450,7 +451,10 @@ class OmlPluginTest {
         val client = project.tasks.getByName("runClient") as JavaExec
         assertTrue(client.args.contains("--demoFlag") && client.args.contains("demoValue"), client.args.toString())
         // Appended after the arguments OML supplies, so a consumer's requirement can override OML's.
-        assertTrue(client.args.lastIndexOf("demoValue") > client.args.indexOf("--userProperties") + 1, client.args.toString())
+        assertTrue(
+            client.args.lastIndexOf("demoValue") > client.args.indexOf("--userProperties") + 1,
+            client.args.toString(),
+        )
 
         val server = project.tasks.getByName("runServer") as JavaExec
         assertFalse(server.args.contains("--demoFlag"), server.args.toString())
