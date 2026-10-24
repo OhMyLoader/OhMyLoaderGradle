@@ -410,13 +410,7 @@ class OmlPlugin : Plugin<Project> {
      * hot redeploy).
      */
     private fun deployModJar(source: File, destination: File) {
-        val identical = destination.isFile &&
-            destination.length() == source.length() &&
-            destination.inputStream().use { a ->
-                source.inputStream().use { b ->
-                    a.readBytes().contentEquals(b.readBytes())
-                }
-            }
+        val identical = destination.isFile && sameBytes(destination, source)
         if (!identical) {
             source.copyTo(destination, overwrite = true)
         }

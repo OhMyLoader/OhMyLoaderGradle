@@ -225,7 +225,7 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
         val lib = buildDir?.let { OmlNativeLayout.candidatePaths(it).firstOrNull { f -> f.isFile } }
             ?: return false
         val target = File(natives, lib.name)
-        if (target.isFile && sameContent(target, lib)) {
+        if (target.isFile && sameBytes(target, lib)) {
             logger.lifecycle("[oml] oml-native up to date in ${target.parentFile.absolutePath}")
             return true
         }
@@ -249,7 +249,7 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
                 }
             val target = File(natives, entry.name)
             val bytes = zip.getInputStream(entry).use { it.readBytes() }
-            if (target.isFile && sameContent(target, bytes)) {
+            if (target.isFile && sameBytes(target, bytes)) {
                 logger.lifecycle("[oml] oml-native (from ${jar.name}) up to date in ${target.parentFile.absolutePath}")
                 return true
             }
@@ -260,15 +260,4 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
             return true
         }
     }
-
-    /**
-     * Byte-wise comparison, not a length check: two builds of the same library are routinely the same
-     * size while differing in content, and a size-only check leaves the stale one deployed forever —
-     * the failure then looks like "the new zig build had no effect".
-     */
-    private fun sameContent(target: File, source: File): Boolean =
-        target.length() == source.length() && target.readBytes().contentEquals(source.readBytes())
-
-    private fun sameContent(target: File, bytes: ByteArray): Boolean =
-        target.length().toInt() == bytes.size && target.readBytes().contentEquals(bytes)
 }
