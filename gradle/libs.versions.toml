@@ -1,9 +1,9 @@
 [versions]
-kotlin = "2.5.0-Beta1"
+kotlin = "2.5.0-Beta2"
 # Test-only: OmlJarTaskTest synthesizes @Mod-annotated class files for the scanner. Nothing here
 # reaches a consumer's runtime — the ASM that ModScanner runs on arrives through oml-core's POM, so
 # the version it ships with is the loader's, and cannot be pinned wrong from this side.
-asm = "9.11"
+asm = "9.11.1"
 
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
