@@ -15,7 +15,7 @@ It resolves the loader by Maven coordinate, configures the game dependencies, an
 ## Prerequisites
 
 - JDK 27. CI uses the Zulu distribution.
-- The Gradle wrapper in this repository (Gradle 9.9.0).
+- The Gradle wrapper in this repository (Gradle 9.9.1).
 - A sibling `OhMyLoader` checkout for the loader publications.
 - No Zig is required: the plugin does not build `oml-native`. At runtime it resolves the published
   artifact and falls back to the vanilla codec when the artifact is absent.
