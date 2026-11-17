@@ -40,7 +40,6 @@ class OmlPlugin : Plugin<Project> {
             // "no value" error that names no property (see requireMinecraftVersion).
             project.afterEvaluate {
                 requireMinecraftVersion(oml)
-                requireResolvableApiArtifact(oml)
             }
         }
     }
@@ -88,14 +87,11 @@ class OmlPlugin : Plugin<Project> {
         oml.modsDir.convention(oml.runDir.dir("mods"))
         oml.assetsDir.convention(oml.runDir.dir("assets"))
 
-        oml.apiArtifact.convention(oml.minecraftVersion.map { version -> "oml-api-" + versionArtifactSuffix(version) })
-        oml.adapterArtifact.convention(
-            oml.minecraftVersion.map { version ->
-                "oml-adapter-" + versionArtifactSuffix(
-                    version,
-                )
-            },
-        )
+        // The loader publishes one game-facing API and one adapter, both without a version suffix:
+        // the tree always tracks the newest game line, so the coordinates do not move with the
+        // version id. Both stay properties so a mod project may point at a fork.
+        oml.apiArtifact.convention("oml-api-game")
+        oml.adapterArtifact.convention("oml-adapter")
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -548,34 +544,9 @@ class OmlPlugin : Plugin<Project> {
 internal fun requireMinecraftVersion(oml: OmlExtension) {
     require(oml.minecraftVersion.isPresent) {
         "oml.minecraftVersion is not set — declare the game version this project targets, e.g. " +
-            "oml { minecraftVersion.set(\"26.3\") }. The plugin derives its artifact coordinates " +
-            "(oml-api-<version>, oml-adapter-<version>) and the run layout from it, so there is no " +
-            "default it could guess."
-    }
-}
-
-/**
- * The per-version artifact-name suffix: game version `26.3` is `oml-adapter-26_3` and `oml-api-26_3`.
- * Top-level because the snapshot guard has to name the same coordinate a consumer would be handed.
- */
-internal fun versionArtifactSuffix(version: String) = version.replace('.', '_')
-
-/**
- * Fails the configuration when a snapshot game version still leaves [OmlExtension.apiArtifact] at the
- * derived name. The loader publishes one version-facing API module and builds the snapshot adapter
- * against it, so `oml-api-snapshot` and `oml-api-26_4-snapshot-2` are names nobody published — leaving
- * them through turns a clear property name into a dependency-resolution error three screens away. Top-level
- * like [requireMinecraftVersion] so tests can call it directly.
- */
-internal fun requireResolvableApiArtifact(oml: OmlExtension) {
-    val version = oml.minecraftVersion.orNull ?: return
-    if (!version.contains("snapshot", ignoreCase = true)) return
-    val derived = "oml-api-" + versionArtifactSuffix(version)
-    require(oml.apiArtifact.get() != derived) {
-        "oml.apiArtifact is still the derived $derived, which the loader does not publish for " +
-            "snapshots — the snapshot adapter is built against the stable version-facing API. Name it: " +
-            "oml { apiArtifact.set(\"oml-api-26_3\") } (or whichever oml-api-<version> the snapshot " +
-            "adapter carries)."
+            "oml { minecraftVersion.set(\"26.4-snapshot-8\") }. The plugin derives the run layout " +
+            "and fetches that version's game jar and libraries from it, so there is no default it " +
+            "could guess."
     }
 }
 

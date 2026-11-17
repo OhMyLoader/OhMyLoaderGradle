@@ -93,15 +93,15 @@ class OmlPluginTest {
     }
 
     @Test
-    fun `the version-facing API rides the same name transform as the adapter`() {
-        // 26.3 -> oml-api-26_3: the mod compiles against the artifact whose types name that version's
-        // game classes, so the coordinate must follow the version the project declared.
+    fun `the game-facing API is resolved under its fixed name`() {
+        // The loader publishes one game-facing API for the newest game line, so the coordinate does
+        // not follow the declared version.
         val project = project()
-        project.oml().minecraftVersion.set("26.3")
+        project.oml().minecraftVersion.set("26.4-snapshot-8")
 
         val ids = project.dependencyIds("compileOnly", withVersion = true)
         val api = OmlExtension.DEFAULT_API_VERSION
-        assertTrue(ids.contains("org.ohmyloader:oml-api-26_3:$api"), "compileOnly: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-api-game:$api"), "compileOnly: $ids")
     }
 
     @Test
@@ -140,31 +140,28 @@ class OmlPluginTest {
     }
 
     @Test
-    fun `the matching adapter is resolved from Maven by the declared version`() {
-        // The artifact id is a name transform of the declared version (26.3 -> 26_3) — exactly the kind
-        // of thing that has to be pinned.
+    fun `the one adapter is resolved from Maven`() {
         val project = project()
-        project.oml().minecraftVersion.set("26.3")
+        project.oml().minecraftVersion.set("26.4-snapshot-8")
 
         val ids = project.dependencyIds("omlLoader", withVersion = true)
         val api = OmlExtension.DEFAULT_API_VERSION
-        assertTrue(ids.contains("org.ohmyloader:oml-adapter-26_3:$api"), "omlLoader: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-adapter:$api"), "omlLoader: $ids")
         assertTrue(ids.contains("org.ohmyloader:oml-core:$api"), "omlLoader: $ids")
         assertTrue(ids.contains("org.ohmyloader:oml-launcher:$api"), "omlLoader: $ids")
     }
 
     @Test
-    fun `the adapter artifact follows every spelling of the version`() {
-        listOf("26.3" to "oml-adapter-26_3")
-            .forEach { [version, artifact] ->
-                val project = project()
-                project.oml().minecraftVersion.set(version)
-                assertEquals(
-                    artifact,
-                    project.oml().adapterArtifact.get(),
-                    "version $version must map to $artifact",
-                )
-            }
+    fun `the adapter artifact does not follow the version`() {
+        listOf("26.3", "26.4-snapshot-8", "snapshot").forEach { version ->
+            val project = project()
+            project.oml().minecraftVersion.set(version)
+            assertEquals(
+                "oml-adapter",
+                project.oml().adapterArtifact.get(),
+                "version $version must still resolve the one adapter",
+            )
+        }
     }
 
     @Test
@@ -204,7 +201,7 @@ class OmlPluginTest {
         // would undo that.
         val oml = project().oml()
         assertFalse(oml.minecraftVersion.isPresent)
-        assertFalse(oml.adapterArtifact.isPresent)
+        assertEquals("oml-adapter", oml.adapterArtifact.get())
     }
 
     @Test
@@ -215,7 +212,7 @@ class OmlPluginTest {
             requireMinecraftVersion(project().oml())
         }
         assertTrue(failure.message!!.contains("oml.minecraftVersion"), failure.message)
-        assertTrue(failure.message!!.contains("26.3"), failure.message)
+        assertTrue(failure.message!!.contains("26.4-snapshot-8"), failure.message)
     }
 
     @Test
@@ -225,23 +222,9 @@ class OmlPluginTest {
     }
 
     @Test
-    fun `a snapshot version has to name the API artifact it compiles against`() {
-        // The loader ships one version-facing API module and builds the snapshot adapter against it, so
-        // the derived name is a coordinate nobody publishes; resolution would fail with a search-path
-        // list instead of naming the property to set.
-        val oml = project().oml().apply { minecraftVersion.set("snapshot") }
-        val failure = assertFailsWith<IllegalArgumentException> { requireResolvableApiArtifact(oml) }
-        assertTrue(failure.message!!.contains("oml.apiArtifact"), failure.message)
-        assertTrue(failure.message!!.contains("oml-api-26_3"), failure.message)
-        oml.apiArtifact.set("oml-api-26_3")
-        requireResolvableApiArtifact(oml)
-    }
-
-    @Test
-    fun `a stable game version derives the API artifact`() {
-        val oml = project().oml().apply { minecraftVersion.set("26.3") }
-        assertEquals("oml-api-26_3", oml.apiArtifact.get())
-        requireResolvableApiArtifact(oml)
+    fun `the API artifact is the one fixed name`() {
+        val oml = project().oml().apply { minecraftVersion.set("26.4-snapshot-8") }
+        assertEquals("oml-api-game", oml.apiArtifact.get())
     }
 
     @Test

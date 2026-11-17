@@ -47,26 +47,20 @@ abstract class OmlExtension {
     abstract val apiVersion: Property<String>
 
     /**
-     * The artifactId of the version-facing mod API compiled against, e.g. `oml-api-26_3`.
+     * The artifactId of the game-facing mod API compiled against, e.g. `oml-api-game`.
      *
-     * Defaults to `oml-api-` + [minecraftVersion] with dots replaced by underscores. Snapshot tracking
-     * is the case that must override it: the loader ships one version-facing API module and the snapshot
-     * adapter is built against that same module, so `oml-api-snapshot` (and any
-     * `oml-api-26_4-snapshot-2`) is not a coordinate that exists to be resolved. Set it to the API the
-     * snapshot adapter carries, e.g. `oml { apiArtifact.set("oml-api-26_3") }`; the plugin fails the
-     * configuration naming this property rather than handing resolution a name it invented.
+     * Defaults to `oml-api-game`: the loader tracks the newest game line and publishes exactly one
+     * version-facing API, so the coordinate does not move with [minecraftVersion]. Override it only
+     * to point at a fork.
      */
     abstract val apiArtifact: Property<String>
 
     /**
-     * The artifactId of the per-version adapter on the launch classpath, e.g. `oml-adapter-26_3`.
+     * The artifactId of the adapter on the launch classpath, e.g. `oml-adapter`.
      *
-     * Defaults to `oml-adapter-` + [minecraftVersion] with dots replaced by underscores — a
-     * *convention*, so an unusual version id can override it. Snapshot versions are the case that
-     * must: the snapshot adapter is `oml-adapter-snapshot` for every snapshot id, so a project
-     * tracking snapshots sets it explicitly. Without an adapter there is no `IAdapter`
-     * implementation and the launcher dies with "no IAdapter implementation found" — the loader
-     * reaches the game through this per-version integration layer, so it *is* the layer.
+     * Defaults to `oml-adapter`, the one adapter the loader publishes. Without an adapter there is
+     * no `IAdapter` implementation and the launcher dies with "no IAdapter implementation found" —
+     * the loader reaches the game through this integration layer, so it *is* the layer.
      */
     abstract val adapterArtifact: Property<String>
 
