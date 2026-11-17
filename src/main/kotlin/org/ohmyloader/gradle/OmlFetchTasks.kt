@@ -229,7 +229,14 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
             logger.lifecycle("[oml] oml-native up to date in ${target.parentFile.absolutePath}")
             return true
         }
-        lib.copyTo(target, overwrite = true)
+        val tmp = File(natives, "${lib.name}.oml-tmp")
+        try {
+            lib.copyTo(tmp, overwrite = true)
+            moveIntoPlace(tmp, target)
+        } catch (t: Throwable) {
+            tmp.delete()
+            throw t
+        }
         logger.lifecycle("[oml] oml-native deployed: ${target.absolutePath} (${lib.length() / 1024} KB)")
         return true
     }
@@ -253,7 +260,14 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
                 logger.lifecycle("[oml] oml-native (from ${jar.name}) up to date in ${target.parentFile.absolutePath}")
                 return true
             }
-            target.writeBytes(bytes)
+            val tmp = File(natives, "${entry.name}.oml-tmp")
+            try {
+                tmp.writeBytes(bytes)
+                moveIntoPlace(tmp, target)
+            } catch (t: Throwable) {
+                tmp.delete()
+                throw t
+            }
             logger.lifecycle(
                 "[oml] oml-native deployed from ${jar.name}: ${target.absolutePath} (${entry.size / 1024} KB)",
             )
