@@ -47,11 +47,11 @@ abstract class OmlExtension {
     abstract val apiVersion: Property<String>
 
     /**
-     * The artifactId of the game-facing mod API compiled against, e.g. `oml-api-game`.
+     * The artifactId of the game-facing mod API compiled against, e.g. `oml-api`.
      *
-     * Defaults to `oml-api-game`: the loader tracks the newest game line and publishes exactly one
-     * version-facing API, so the coordinate does not move with [minecraftVersion]. Override it only
-     * to point at a fork.
+     * Defaults to `oml-api`: the loader tracks the newest game line and publishes exactly one
+     * game-facing API, so the coordinate does not move with [minecraftVersion]. The version-neutral
+     * base it builds on is `oml-api-core`. Override it only to point at a fork.
      */
     abstract val apiArtifact: Property<String>
 

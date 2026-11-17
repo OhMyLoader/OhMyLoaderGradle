@@ -90,7 +90,7 @@ class OmlPlugin : Plugin<Project> {
         // The loader publishes one game-facing API and one adapter, both without a version suffix:
         // the tree always tracks the newest game line, so the coordinates do not move with the
         // version id. Both stay properties so a mod project may point at a fork.
-        oml.apiArtifact.convention("oml-api-game")
+        oml.apiArtifact.convention("oml-api")
         oml.adapterArtifact.convention("oml-adapter")
     }
 
@@ -99,9 +99,8 @@ class OmlPlugin : Plugin<Project> {
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * What a mod compiles against: `org.ohmyloader:oml-api` (the version-neutral surface),
-     * `org.ohmyloader:oml-api-<version>` (the version-facing one — same name rule as the adapter
-     * artifact, because both are per-version by construction), and the game's own classes.
+     * What a mod compiles against: `org.ohmyloader:oml-api-core` (the version-neutral surface),
+     * `org.ohmyloader:oml-api` (the game-facing one), and the game's own classes.
      *
      * `compileOnly`, not `implementation`: all of it is supplied at run time — the loader by the launch,
      * the game classes by the game jar — and bundling it would put a second copy inside the mod jar,
@@ -118,7 +117,7 @@ class OmlPlugin : Plugin<Project> {
     private fun attachApiDependency(project: Project, oml: OmlExtension, fetch: FetchTasks) {
         project.dependencies.addProvider(
             "compileOnly",
-            oml.apiVersion.map { "org.ohmyloader:oml-api:$it" },
+            oml.apiVersion.map { "org.ohmyloader:oml-api-core:$it" },
         )
         project.dependencies.addProvider(
             "compileOnly",

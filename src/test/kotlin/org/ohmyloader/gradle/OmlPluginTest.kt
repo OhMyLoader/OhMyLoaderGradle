@@ -89,7 +89,7 @@ class OmlPluginTest {
         // compileOnly and not implementation: the loader supplies the API at runtime, and bundling it
         // would put a second copy of OML's classes inside every mod jar.
         val ids = project().dependencyIds("compileOnly")
-        assertTrue(ids.contains("org.ohmyloader:oml-api"), "compileOnly does not carry oml-api: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-api-core"), "compileOnly does not carry oml-api-core: $ids")
     }
 
     @Test
@@ -101,7 +101,7 @@ class OmlPluginTest {
 
         val ids = project.dependencyIds("compileOnly", withVersion = true)
         val api = OmlExtension.DEFAULT_API_VERSION
-        assertTrue(ids.contains("org.ohmyloader:oml-api-game:$api"), "compileOnly: $ids")
+        assertTrue(ids.contains("org.ohmyloader:oml-api:$api"), "compileOnly: $ids")
     }
 
     @Test
@@ -224,7 +224,7 @@ class OmlPluginTest {
     @Test
     fun `the API artifact is the one fixed name`() {
         val oml = project().oml().apply { minecraftVersion.set("26.4-snapshot-8") }
-        assertEquals("oml-api-game", oml.apiArtifact.get())
+        assertEquals("oml-api", oml.apiArtifact.get())
     }
 
     @Test
