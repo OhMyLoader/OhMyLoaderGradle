@@ -60,7 +60,7 @@ jobs:
           ./gradlew -p OhMyLoader \
             :oml-devtools:publishMavenPublicationToMavenLocal \
             :oml-core:publishMavenPublicationToMavenLocal \
-            :oml-api:publishMavenPublicationToMavenLocal \
+            :oml-api-core:publishMavenPublicationToMavenLocal \
             :oml-content:publishMavenPublicationToMavenLocal
       - run: ./gradlew build
 
@@ -105,7 +105,7 @@ jobs:
           ./gradlew -p OhMyLoader -Poml_version="${GITHUB_REF_NAME#v}" \
             :oml-devtools:publishMavenPublicationToMavenLocal \
             :oml-core:publishMavenPublicationToMavenLocal \
-            :oml-api:publishMavenPublicationToMavenLocal \
+            :oml-api-core:publishMavenPublicationToMavenLocal \
             :oml-content:publishMavenPublicationToMavenLocal
       - run: ./gradlew -Poml_version="${GITHUB_REF_NAME#v}" publish
         env:
