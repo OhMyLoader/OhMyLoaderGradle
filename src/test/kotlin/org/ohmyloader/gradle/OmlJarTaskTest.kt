@@ -32,7 +32,7 @@ class OmlJarTaskTest {
     ) {
         val writer = ClassWriter(0)
         writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, "org/example/TestMod", null, "java/lang/Object", null)
-        val annotation = writer.visitAnnotation("Lorg/ohmyloader/api/Mod;", true)
+        val annotation = writer.visitAnnotation("Lorg/ohmyloader/api/core/Mod;", true)
         annotation.visit("id", modId)
         annotation.visit("version", version)
         if (dependencies.isNotEmpty()) {
@@ -110,7 +110,7 @@ class OmlJarTaskTest {
                 val internal =
                     "org/example/${id.replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }}"
                 writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, internal, null, "java/lang/Object", null)
-                writer.visitAnnotation("Lorg/ohmyloader/api/Mod;", true).apply {
+                writer.visitAnnotation("Lorg/ohmyloader/api/core/Mod;", true).apply {
                     visit("id", id)
                     visit("version", "2.0")
                     visitEnd()
