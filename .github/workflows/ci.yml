@@ -50,7 +50,7 @@ jobs:
       # defect JDK-8394484, fixed by JDK PR 33729). The action fetches the pinned public release
       # asset and verifies its digest.
       - name: Install the 27.0.2-internal JDK bundle
-        uses: ./.github/actions/install-oml-jdk
+        uses: OhMyLoader/install-oml-jdk@v1
         with:
           url: https://github.com/OhMyLoader/OhMyLoader/releases/download/jdk-27.0.2-internal/bundles-linux-x64.zip
           sha256: ce2052f923109e165e531c1ceada67e583347a4de757c40db5edcf46fc7270a8
@@ -91,7 +91,7 @@ jobs:
       # defect JDK-8394484, fixed by JDK PR 33729). The action fetches the pinned public release
       # asset and verifies its digest.
       - name: Install the 27.0.2-internal JDK bundle
-        uses: ./.github/actions/install-oml-jdk
+        uses: OhMyLoader/install-oml-jdk@v1
         with:
           url: https://github.com/OhMyLoader/OhMyLoader/releases/download/jdk-27.0.2-internal/bundles-linux-x64.zip
           sha256: ce2052f923109e165e531c1ceada67e583347a4de757c40db5edcf46fc7270a8
