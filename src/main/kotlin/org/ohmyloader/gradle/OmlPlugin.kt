@@ -79,10 +79,6 @@ class OmlPlugin : Plugin<Project> {
         val versionDir = oml.minecraftVersion.flatMap { version -> oml.runDir.dir(version) }
         oml.librariesDir.convention(versionDir.map { it.dir("libraries") })
         oml.nativesDir.convention(versionDir.map { it.dir("natives") })
-        // The zig project, and the build tree inside it. The second follows the first so a consumer
-        // that relocates the zig project gets the deploy path right by relocating one property.
-        oml.nativeProjectDir.convention(project.rootProject.layout.projectDirectory.dir("oml-native"))
-        oml.omlNativeBuildDir.convention(oml.nativeProjectDir.map { it.dir("build") })
         oml.clientJar.convention(versionDir.map { it.file("minecraft/client.jar") })
         oml.modsDir.convention(oml.runDir.dir("mods"))
         oml.assetsDir.convention(oml.runDir.dir("assets"))
@@ -188,8 +184,7 @@ class OmlPlugin : Plugin<Project> {
         // The published oml-native library (`org.ohmyloader:oml-native:<apiVersion>:natives-<os>`):
         // the zero-config default source of `extractNatives`'s oml-native deploy. Resolved leniently —
         // an empty view (coordinate not published to any of the consumer's repositories) is the
-        // plugin's documented degrade-to-vanilla-zlib path, not a failure. A consumer overriding
-        // `oml.omlNativeBuildDir` still wins: the task prefers the local zig build over this artifact.
+        // plugin's documented degrade-to-vanilla-zlib path, not a failure.
         val omlNative = project.configurations.create("omlNative") { configuration ->
             configuration.isCanBeConsumed = false
             configuration.isCanBeResolved = true
@@ -216,33 +211,11 @@ class OmlPlugin : Plugin<Project> {
             task.minecraftVersion.set(oml.minecraftVersion)
             task.librariesDir.set(oml.librariesDir)
             task.nativesDir.set(oml.nativesDir)
-            task.omlNativeBuildDir.set(oml.omlNativeBuildDir)
             task.nativeJars.setFrom(omlNative.incoming.artifactView { it.lenient(true) }.files)
             // Explicit rather than inferred: the natives jars are located by reading the version JSON, so
             // this task needs the libraries present but cannot express that as an input without also
             // fingerprinting hundreds of megabytes on every run.
             task.dependsOn(libraries)
-        }
-
-        // Deferred to `afterEvaluate`, unlike everything else here, because the decision is a file check
-        // and the location is a consumer's to choose: `oml { nativeProjectDir.set(...) }` cannot run
-        // before `plugins { }` has applied this plugin, so an eager read would only ever see the
-        // convention. When the zig project is present, `buildOmlNative` builds as a normal incremental
-        // task ahead of `extractNatives`; an external mod project — the common case — has no `build.zig`
-        // where the default points and simply never gets the task (the deploy keeps its logged skip).
-        project.afterEvaluate {
-            val nativeProject = oml.nativeProjectDir.get().asFile
-            if (!File(nativeProject, "build.zig").isFile) return@afterEvaluate
-            val buildNative = project.tasks.register("buildOmlNative", OmlBuildNative::class.java) { task ->
-                task.group = "ohmyloader"
-                task.description = "Rebuild the oml-native library with zig (skipped when sources are unchanged)"
-                task.nativeProjectDir.set(nativeProject)
-                task.buildOutputDir.set(File(nativeProject, "build"))
-                task.sourceFiles.from(project.fileTree(File(nativeProject, "src")))
-                task.sourceFiles.from(File(nativeProject, "build.zig"))
-                task.sourceFiles.from(File(nativeProject, "build.zig.zon"))
-            }
-            natives.configure { it.dependsOn(buildNative) }
         }
 
         val assets = project.tasks.register("fetchAssets", OmlFetchAssets::class.java) { task ->

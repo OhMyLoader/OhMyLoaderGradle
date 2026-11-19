@@ -107,29 +107,6 @@ abstract class OmlExtension {
     /** Unpacked natives of the running platform; `java.library.path` for a launch points here. */
     abstract val nativesDir: DirectoryProperty
 
-    /**
-     * The `oml-native` zig project: the directory holding `build.zig`, `build.zig.zon` and `src/`.
-     *
-     * Defaults to `oml-native/` beside the *root* project. The zig project lives in the loader
-     * repository, not this one — so the default only resolves in a checkout that also contains it
-     * (a development workspace with sibling clones); every other project resolves the published
-     * Maven artifact instead. [omlNativeBuildDir] follows it. The rebuild task is registered only
-     * when this directory really carries a `build.zig`, and since that check happens at
-     * configuration time while `oml { }` runs *after* `plugins { }`, the registration is deferred
-     * until the project has been evaluated (see `OmlPlugin.registerFetchTasks`).
-     */
-    abstract val nativeProjectDir: DirectoryProperty
-
-    /**
-     * Root of the zig build tree for our own `oml-native` library (the directory holding
-     * `<plat>/<arch>/release/oml-native.<ext>`). `extractNatives` deploys the current platform's
-     * library into [nativesDir] from here, so it is derived from [nativeProjectDir]; the convention
-     * only resolves when the zig project sits beside the root project (a development checkout). Set
-     * it (or leave the library away) and the deploy degrades to a logged skip — every runtime
-     * consumer of the library also supports the vanilla fallbacks.
-     */
-    abstract val omlNativeBuildDir: DirectoryProperty
-
     /** The vanilla client jar. Fetched by `fetchClientJar`. */
     abstract val clientJar: RegularFileProperty
 

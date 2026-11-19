@@ -176,20 +176,10 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
     abstract val nativesDir: DirectoryProperty
 
     /**
-     * Root of the zig build tree for our own `oml-native` library (the layout the build tasks
-     * deploy into). Optional: when it is unset or carries no build for the running platform, the
-     * Maven artifact is tried next — see [nativeJars].
-     */
-    @get:Internal
-    abstract val omlNativeBuildDir: DirectoryProperty
-
-    /**
      * The `natives-<os>` classified jar of the published `org.ohmyloader:oml-native` coordinate
      * (library at the jar root), resolved from the consumer's repositories. Resolved leniently, so
      * a consumer whose repository has no published artifact (an older layer, a coordinate nobody
-     * published yet) contributes an empty collection instead of failing the build. Tried after
-     * [omlNativeBuildDir]: a developer pointing at a fresh zig build wants that build, not the
-     * last published one.
+     * published yet) contributes an empty collection instead of failing the build.
      */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
@@ -207,38 +197,15 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
      * `oml-native` joins the vanilla natives in the same physical directory `java.library.path`
      * points at — the single-residency rule: the runtime's NativeManager never extracts anywhere
      * else, so dev runs and installer-laid-out trees look identical to it. Sources, in order: a
-     * locally declared zig build tree ([omlNativeBuildDir] — the developer override), then the
      * published Maven artifact ([nativeJars] — the zero-config default).
      */
     private fun deployOmlNative(natives: File) {
-        if (deployOmlNativeFromBuild(natives)) return
         if (deployOmlNativeFromMaven(natives)) return
         logger.warn(
-            "[oml] oml-native not found — no local zig build (oml.omlNativeBuildDir) and no "
-                + "published org.ohmyloader:oml-native artifact in the repositories; "
+            "[oml] oml-native not found — no published org.ohmyloader:oml-native artifact in the "
+                + "repositories; "
                 + "OML's zstd codecs will use their vanilla fallbacks",
         )
-    }
-
-    private fun deployOmlNativeFromBuild(natives: File): Boolean {
-        val buildDir = omlNativeBuildDir.orNull?.asFile
-        val lib = buildDir?.let { OmlNativeLayout.candidatePaths(it).firstOrNull { f -> f.isFile } }
-            ?: return false
-        val target = File(natives, lib.name)
-        if (target.isFile && sameBytes(target, lib)) {
-            logger.lifecycle("[oml] oml-native up to date in ${target.parentFile.absolutePath}")
-            return true
-        }
-        val tmp = File(natives, "${lib.name}.oml-tmp")
-        try {
-            lib.copyTo(tmp, overwrite = true)
-            moveIntoPlace(tmp, target)
-        } catch (t: Throwable) {
-            tmp.delete()
-            throw t
-        }
-        logger.lifecycle("[oml] oml-native deployed: ${target.absolutePath} (${lib.length() / 1024} KB)")
-        return true
     }
 
     /**
