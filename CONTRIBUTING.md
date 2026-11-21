@@ -28,6 +28,7 @@ Publish the loader coordinates the plugin resolves, then build this repository:
 (cd ../OhMyLoader && ./gradlew \
   :oml-devtools:publishMavenPublicationToMavenLocal \
   :oml-core:publishMavenPublicationToMavenLocal \
+  :oml-api-core:publishMavenPublicationToMavenLocal \
   :oml-api:publishMavenPublicationToMavenLocal \
   :oml-content:publishMavenPublicationToMavenLocal)
 ./gradlew build
