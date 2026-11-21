@@ -7,4 +7,4 @@ tasks.
 
 ## License
 
-Licensed under AGPL-3.0.
+Licensed under AGPL-3.0-or-later.
