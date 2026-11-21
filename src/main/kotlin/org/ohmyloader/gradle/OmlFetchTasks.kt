@@ -200,6 +200,13 @@ internal abstract class OmlExtractNatives : OmlFetchTask() {
      * published Maven artifact ([nativeJars] — the zero-config default).
      */
     private fun deployOmlNative(natives: File) {
+        // Diagnostic: the lenient artifact view swallows resolution failures — when the deploy
+        // skips, these lines are the only evidence of what the repositories actually returned.
+        val resolved = nativeJars.files
+        logger.lifecycle(
+            "[oml] oml-native deploy: resolved ${resolved.size} artifact(s): " +
+                resolved.joinToString(", ") { "${it.name} (${it.length()} B)" },
+        )
         if (deployOmlNativeFromMaven(natives)) return
         logger.warn(
             "[oml] oml-native not found — no published org.ohmyloader:oml-native artifact in the "
