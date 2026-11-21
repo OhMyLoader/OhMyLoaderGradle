@@ -17,8 +17,8 @@ It resolves the loader by Maven coordinate, configures the game dependencies, an
 - JDK 27. CI uses the Zulu distribution.
 - The Gradle wrapper in this repository (Gradle 9.9.1).
 - A sibling `OhMyLoader` checkout for the loader publications.
-- No Zig is required: the plugin does not build `oml-native`. At runtime it resolves the published
-  artifact and falls back to the vanilla codec when the artifact is absent.
+- The plugin does not build `oml-native`. At runtime it resolves the published artifact and falls
+  back to the vanilla codec when the artifact is absent.
 
 ## Build and test
 
@@ -76,12 +76,9 @@ fails with a missing `org.ohmyloader` coordinate. Fix the version alignment befo
 
 ## Security
 
-Do not report a vulnerability in a public issue. Use GitHub's private vulnerability reporting for this
-repository; include the affected version or commit, reproduction steps, and impact. If private reporting
-is unavailable, contact the maintainer through GitHub before public disclosure.
+Report vulnerabilities privately; the organization-wide policy lives in the
+[`.github` repository](https://github.com/OhMyLoader/.github/blob/main/SECURITY.md) and applies here.
 
 ## License
 
-The project is licensed under AGPL-3.0. By submitting a contribution, you confirm that you have the right
-to license it under AGPL-3.0. No CLA or `Signed-off-by` is required. Do not submit code with an
-incompatible license.
+The project is licensed under AGPL-3.0.
